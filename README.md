@@ -23,15 +23,40 @@ Read LICENSE in this repository for a project-specific summary and links.
 
 ## Project Structure (Consolidated)
 
-- scripts/build_dict.py: Main build pipeline (parse INO XML, enrich with BÍN morphology, emit Apple XML).
+- scripts/build_dict.py: Main build pipeline (parse INO XML, enrich with BÍN morphology + optional pronunciation/hyphenation, emit Apple XML).
+- scripts/fetch_supplementary_data.sh: Optional — downloads/stages the CC BY pronunciation and hyphenation datasets described below.
+- scripts/enrichment_data.py: Loaders for the staged pronunciation/hyphenation data.
+- scripts/convert_pronunciation_xls.py: One-time .xls -> .tsv conversion used by the fetch script.
 - scripts/install_dictionary.sh: One-command installer for new users.
 - data/ino_data.xml: Local lexical source data input.
+- data/pronunciation/, data/hyphenation/: Staged optional enrichment data (gitignored).
 - src/IcelandicDictionary.xml: Generated dictionary source XML (build output).
 - src/IcelandicDictionary.css: Dictionary style sheet used by build_dict.sh.
 - src/IcelandicDictionary.plist: Bundle metadata (includes display name: "Íslensk orðabók").
 - src/Makefile: Primary build/install targets for DictionaryDevelopmentKit.
 - src/objects/: Intermediate and final .dictionary build artifacts.
 - Makefile: Thin root shim that forwards to src/Makefile.
+
+## Optional Enrichment Data (Pronunciation & Hyphenation)
+
+Two extra CLARIN-IS datasets can be layered on top of entries, both released
+under CC BY (unlike the ND-locked INO data, so redistribution of derived
+output from these two is fine with attribution):
+
+- [Pronunciation Dictionary for Icelandic](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/198) (CC BY 3.0) — ~65k IPA/SAMPA transcriptions.
+- [Icelandic Hyphenation Dictionary 2.0](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/86) (CC BY 4.0) — ~218k hyphenated word forms.
+
+Stage them once:
+
+```bash
+./scripts/fetch_supplementary_data.sh
+```
+
+This downloads both archives into `data/pronunciation/` and
+`data/hyphenation/` and converts the pronunciation `.xls` to a `.tsv`. Both
+directories are gitignored, matching the existing "don't commit raw
+datasets" policy. If the data isn't staged, `build_dict.py` simply skips
+this enrichment — it's not required for a working build.
 
 ## Prerequisites
 

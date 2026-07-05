@@ -58,3 +58,18 @@
     display: block;
     margin-bottom: 2px;
 }
+
+/* Optional pronunciation/hyphenation line under the headword */
+.pronunciation-line {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.pronunciation-line .ipa {
+    font-style: italic;
+}
+
+.pronunciation-line .hyphenation {
+    letter-spacing: 0.02em;
+}

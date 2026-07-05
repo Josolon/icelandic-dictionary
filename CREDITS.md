@@ -10,6 +10,18 @@ This project combines local build tooling with external Icelandic language resou
 Primary repository reference:
 - https://repository.clarin.is/
 
+### Optional Enrichment Data (Pronunciation & Hyphenation)
+
+- Pronunciation Dictionary for Icelandic (Hjal-project), CC BY 3.0 —
+  https://repository.clarin.is/repository/xmlui/handle/20.500.12537/198
+- Icelandic Hyphenation Dictionary 2.0, CC BY 4.0 —
+  https://repository.clarin.is/repository/xmlui/handle/20.500.12537/86
+  (upstream source: https://github.com/krunars/hyphenation-is)
+
+Both published by Stofnun Árna Magnússonar í íslenskum fræðum and, unlike
+the INO data below, licensed CC BY — redistribution of derived output is
+permitted with attribution.
+
 ## Morphology and Lookup Runtime
 
 - BÍN access via the `islenska` Python package

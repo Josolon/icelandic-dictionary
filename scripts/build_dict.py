@@ -5,6 +5,8 @@ import html
 import re
 from islenska import Bin
 
+from enrichment_data import load_pronunciation_lookup, load_hyphenation_lookup
+
 NUTHALEGAR_VERBS = {
     "eiga", "mega", "unna", "kunna", "knega", "muna", "munu", "skulu", "vilja", "vita", "þurfa"
 }
@@ -513,10 +515,34 @@ def get_full_paradigm_via_blaster(b, headword, pos_cat):
             pass
     return final_matches
 
+def render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup):
+    """Render an optional pronunciation/hyphenation line shown under the headword."""
+    key = lookup_hw.strip().lower()
+    ipa, sampa = pron_lookup.get(key, ("", ""))
+    hyphenated = hyph_lookup.get(key, "")
+
+    parts = []
+    if ipa:
+        parts.append(f"<span class='ipa'>[{html.escape(ipa)}]</span>")
+    if hyphenated and hyphenated.replace("-", "") == key:
+        parts.append(f"<span class='hyphenation'>{html.escape(hyphenated)}</span>")
+
+    if not parts:
+        return ""
+    return f"<div class='pronunciation-line'>{' · '.join(parts)}</div>"
+
+
 def build_apple_dictionary_xml(entries, output_path):
     print("⚙️  Integrating BÍN morphology paradigms and generating Apple XML...")
     b = Bin()
-    
+
+    pron_lookup = load_pronunciation_lookup()
+    hyph_lookup = load_hyphenation_lookup()
+    if pron_lookup:
+        print(f"🔊 Loaded {len(pron_lookup)} pronunciation entries.")
+    if hyph_lookup:
+        print(f"🔤 Loaded {len(hyph_lookup)} hyphenation entries.")
+
     xml_out = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<d:dictionary xmlns="http://www.w3.org/1999/xhtml" xmlns:d="http://www.apple.com/DTDs/DictionaryService-1.0.rng">',
@@ -810,12 +836,14 @@ def build_apple_dictionary_xml(entries, output_path):
             """
             
         gram_html = f" <span style='font-size: 16px; color: #555; font-weight: normal; font-style: italic;'>({html.escape(grammar_txt)})</span>" if grammar_txt else ""
-        
+        pronunciation_html = render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup)
+
         entry_id = f"entry_{idx}"
         entry_xml = f"""
         <d:entry id="{entry_id}" d:title="{html.escape(raw_hw)}">
             {index_tags}
             <h1>{html.escape(raw_hw)}{gram_html}</h1>
+            {pronunciation_html}
             <ol class="definition-list" style="padding-left:20px; line-height:1.5em; margin-bottom:12px;">
                 {def_list_html}
             </ol>
