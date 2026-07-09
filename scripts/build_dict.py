@@ -150,15 +150,36 @@ def pick_first(forms_dict, keys, default="-"):
             return forms_dict[k]
     return default
 
-def pick_adjective_declension(forms, gender, case, number):
+def pick_adjective_declension(forms, gender, case, number, degree_prefix="FSB"):
     keys = [
-        f"FSB-{gender}-{case}{number}",
+        f"{degree_prefix}-{gender}-{case}{number}",
     ]
     return pick_first(forms, keys, "")
 
+def detect_adjective_degree(b, lookup_hw):
+    """Determine which BÍN degree paradigm a given adjective headword actually belongs
+    to — FSB/FVB (frumstig, positive), MST (miðstig, comparative), or ESB/EVB (efsta
+    stig, superlative). Suppletive comparatives/superlatives like "betri"/"bestur" are
+    catalogued under a different lemma (góður) with a distinct surface form, so callers
+    must render the paradigm matching the headword's own degree, not always the positive.
+    Falls back to "FSB" (positive) when the headword isn't itself an inflected adjective
+    form BÍN recognizes (the common case for regular lemma entries)."""
+    try:
+        _, matches = b.lookup(lookup_hw)
+    except Exception:
+        return "FSB"
+    hw_l = lookup_hw.strip().lower()
+    for m in matches:
+        if getattr(m, "ofl", "") == "lo" and (getattr(m, "bmynd", "") or "").lower() == hw_l:
+            mark = getattr(m, "mark", getattr(m, "beyging", "")).upper()
+            prefix = mark.split("-")[0]
+            if prefix in ("FSB", "FVB", "MST", "ESB", "EVB"):
+                return prefix
+    return "FSB"
+
 def pick_variant_form(b, lemma, tag, target_bin_id=None):
     """Pick a stable representative form for a specific BÍN variant tag."""
-    cat = 'lo' if tag.startswith(('FSB-', 'FVB-', 'ESB-', 'EVB-')) else 'so'
+    cat = 'lo' if tag.startswith(('FSB-', 'FVB-', 'ESB-', 'EVB-', 'MST-')) else 'so'
     try:
         variants = b.lookup_variants(lemma, cat, tag)
     except Exception:
@@ -228,17 +249,17 @@ def enrich_verb_forms_via_variants(b, lemma, forms, target_bin_id=None):
             forms[tag] = val
     return forms
 
-def enrich_adjective_forms_via_variants(b, lemma, forms):
-    """Fill adjective declension slots for genders/cases/numbers via lookup_variants."""
+def enrich_adjective_forms_via_variants(b, lemma, forms, degree_prefix="FSB"):
+    """Fill adjective declension slots for genders/cases/numbers via lookup_variants,
+    for whichever degree (frumstig/miðstig/efsta stig) the headword actually belongs to."""
     genders = ["KK", "KVK", "HK"]
     cases = ["NF", "ÞF", "ÞGF", "EF"]
     numbers = ["ET", "FT"]
 
-    # Basic strong declension is enough for the requested 6-column adjective matrix.
     for g in genders:
         for c in cases:
             for n in numbers:
-                tag = f"FSB-{g}-{c}{n}"
+                tag = f"{degree_prefix}-{g}-{c}{n}"
                 if forms.get(tag):
                     continue
                 val = pick_variant_form(b, lemma, tag)
@@ -642,6 +663,7 @@ def build_apple_dictionary_xml(entries, output_path):
         is_verb = False
         is_noun = False
         is_adjective = False
+        adjective_degree = "FSB"
         
         for match in bin_matches:
             try:
@@ -670,7 +692,8 @@ def build_apple_dictionary_xml(entries, output_path):
             if any(k.startswith("GM-") or k.startswith("MM-") for k in forms.keys()):
                 is_verb = True
         elif pos_cat == "lo":
-            forms = enrich_adjective_forms_via_variants(b, lookup_hw, forms)
+            adjective_degree = detect_adjective_degree(b, lookup_hw)
+            forms = enrich_adjective_forms_via_variants(b, lookup_hw, forms, degree_prefix=adjective_degree)
             if any("-KK-" in k or "-KVK-" in k or "-HK-" in k for k in forms.keys()):
                 is_adjective = True
 
@@ -827,13 +850,22 @@ def build_apple_dictionary_xml(entries, output_path):
         # 3. ADJECTIVE TABLE LAYOUT (6 columns)
         # ==========================================
         elif is_adjective and forms:
+            DEGREE_TITLES = {
+                "FSB": "Lýsingarorðsbeyging (frumstig, sterk beyging)",
+                "FVB": "Lýsingarorðsbeyging (frumstig, veik beyging)",
+                "MST": "Lýsingarorðsbeyging (miðstig)",
+                "ESB": "Lýsingarorðsbeyging (efsta stig, sterk beyging)",
+                "EVB": "Lýsingarorðsbeyging (efsta stig, veik beyging)",
+            }
+            degree_title = DEGREE_TITLES.get(adjective_degree, "Lýsingarorðsbeyging")
+
             def adj_row(case_label, case_code):
-                kk_et = pick_adjective_declension(forms, "KK", case_code, "ET")
-                kk_ft = pick_adjective_declension(forms, "KK", case_code, "FT")
-                kvk_et = pick_adjective_declension(forms, "KVK", case_code, "ET")
-                kvk_ft = pick_adjective_declension(forms, "KVK", case_code, "FT")
-                hk_et = pick_adjective_declension(forms, "HK", case_code, "ET")
-                hk_ft = pick_adjective_declension(forms, "HK", case_code, "FT")
+                kk_et = pick_adjective_declension(forms, "KK", case_code, "ET", adjective_degree)
+                kk_ft = pick_adjective_declension(forms, "KK", case_code, "FT", adjective_degree)
+                kvk_et = pick_adjective_declension(forms, "KVK", case_code, "ET", adjective_degree)
+                kvk_ft = pick_adjective_declension(forms, "KVK", case_code, "FT", adjective_degree)
+                hk_et = pick_adjective_declension(forms, "HK", case_code, "ET", adjective_degree)
+                hk_ft = pick_adjective_declension(forms, "HK", case_code, "FT", adjective_degree)
                 return (
                     f"<tr><td><i>{case_label}</i></td>"
                     f"<td>{html.escape(kk_et) if kk_et else '-'}</td><td>{html.escape(kk_ft) if kk_ft else '-'}</td>"
@@ -861,7 +893,7 @@ def build_apple_dictionary_xml(entries, output_path):
                 {adj_row('Ef.', 'EF')}
             </table>
             """
-            paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container-verbs"><div class="voice-section"><h4>Lýsingarorðsbeyging</h4>{adjective_table}</div></div>')
+            paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container-verbs"><div class="voice-section"><h4>{degree_title}</h4>{adjective_table}</div></div>')
 
         elif seen_forms:
             inflection_boxes_html = []
