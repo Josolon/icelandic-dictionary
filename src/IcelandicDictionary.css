@@ -1,4 +1,30 @@
-/* Container for the inflection grid/table inside <details> */
+/* Always-visible section block (paradigms, examples, idioms). No <details>/
+   <summary> — folds render clumsily in Dictionary.app. */
+.section-block {
+    margin-top: 12px;
+    background-color: #f7f9ff;
+    border: 1px solid #c8d4ee;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.section-label {
+    margin: 0;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2a4a9a;
+    background-color: #edf1fb;
+    border-bottom: 1px solid #c8d4ee;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.section-body {
+    padding: 8px 10px;
+}
+
+/* Container for the inflection grid/table inside a section block */
 .inflection-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
@@ -20,17 +46,23 @@
 }
 
 .verb-paradigm-table {
-    width: 100%;
-    table-layout: fixed;
+    width: auto;
+    max-width: 100%;
+    table-layout: auto;
     border-collapse: collapse;
 }
 
 .verb-paradigm-table th,
 .verb-paradigm-table td {
-    padding: 4px 6px;
+    padding: 4px 18px 4px 4px;
     text-align: center;
     vertical-align: top;
     white-space: nowrap;
+}
+
+.verb-paradigm-table th:last-child,
+.verb-paradigm-table td:last-child {
+    padding-right: 4px;
 }
 
 .verb-paradigm-table th {

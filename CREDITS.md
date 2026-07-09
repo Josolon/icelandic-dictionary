@@ -22,6 +22,17 @@ Both published by Stofnun Árna Magnússonar í íslenskum fræðum and, unlike
 the INO data below, licensed CC BY — redistribution of derived output is
 permitted with attribution.
 
+### Optional Enrichment Data (Synonyms)
+
+- IceWordNet (Icelandic Core WordNet), CC BY 3.0 —
+  https://repository.clarin.is/repository/xmlui/handle/20.500.12537/207
+  Icelandic translations and synonyms based on the Princeton Core WordNet
+  list, compiled by Kristín M. Jóhannsdóttir with help from the Icelandic
+  Thesaurus (Svavar Sigmundsson 1985) and snara.is.
+
+Published by Stofnun Árna Magnússonar í íslenskum fræðum, licensed CC BY —
+redistribution of derived output is permitted with attribution.
+
 ## Morphology and Lookup Runtime
 
 - BÍN access via the `islenska` Python package

@@ -14,20 +14,26 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 PRON_URL="https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/198/pron_dict.zip?sequence=1&isAllowed=y"
 HYPH_URL="https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/86/hyphenation-is.zip?sequence=1&isAllowed=y"
+SYN_URL="https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/207/IceWordNet.zip?sequence=1&isAllowed=y"
 
-echo "[1/4] Downloading Pronunciation Dictionary for Icelandic (CC BY 3.0)"
+echo "[1/5] Downloading Pronunciation Dictionary for Icelandic (CC BY 3.0)"
 curl -sL "${PRON_URL}" -o "${WORK_DIR}/pron_dict.zip"
 mkdir -p "${DATA_DIR}/pronunciation"
 unzip -o -q "${WORK_DIR}/pron_dict.zip" -d "${DATA_DIR}/pronunciation"
 
-echo "[2/4] Downloading Icelandic Hyphenation Dictionary 2.0 (CC BY 4.0)"
+echo "[2/5] Downloading Icelandic Hyphenation Dictionary 2.0 (CC BY 4.0)"
 curl -sL "${HYPH_URL}" -o "${WORK_DIR}/hyphenation-is.zip"
 mkdir -p "${DATA_DIR}/hyphenation"
 unzip -o -q "${WORK_DIR}/hyphenation-is.zip" -d "${WORK_DIR}/hyphenation-extract"
 cp "${WORK_DIR}/hyphenation-extract/hyphenation-is/hyph_is_list.txt" "${DATA_DIR}/hyphenation/"
 cp "${WORK_DIR}/hyphenation-extract/hyphenation-is/README.md" "${DATA_DIR}/hyphenation/README_upstream.md"
 
-echo "[3/4] Converting pronunciation .xls to .tsv (word, ipa, sampa)"
+echo "[3/5] Downloading IceWordNet synonym dictionary (CC BY 3.0)"
+curl -sL "${SYN_URL}" -o "${WORK_DIR}/IceWordNet.zip"
+mkdir -p "${DATA_DIR}/synonyms"
+unzip -o -q "${WORK_DIR}/IceWordNet.zip" -d "${DATA_DIR}/synonyms"
+
+echo "[4/5] Converting pronunciation .xls to .tsv (word, ipa, sampa)"
 PYTHON_BIN="${REPO_ROOT}/venv/bin/python3"
 if [[ ! -x "${PYTHON_BIN}" ]]; then
   PYTHON_BIN="python3"
@@ -37,6 +43,7 @@ fi
   "${DATA_DIR}/pronunciation/WordList_IPA_SAMPA.xls" \
   "${DATA_DIR}/pronunciation/pronunciation.tsv"
 
-echo "[4/4] Done. Staged data:"
+echo "[5/5] Done. Staged data:"
 echo "  ${DATA_DIR}/pronunciation/pronunciation.tsv"
 echo "  ${DATA_DIR}/hyphenation/hyph_is_list.txt"
+echo "  ${DATA_DIR}/synonyms/core-isl.txt"

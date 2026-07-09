@@ -5,7 +5,7 @@ import html
 import re
 from islenska import Bin
 
-from enrichment_data import load_pronunciation_lookup, load_hyphenation_lookup
+from enrichment_data import load_pronunciation_lookup, load_hyphenation_lookup, load_synonyms_lookup
 
 NUTHALEGAR_VERBS = {
     "eiga", "mega", "unna", "kunna", "knega", "muna", "munu", "skulu", "vilja", "vita", "þurfa"
@@ -156,13 +156,15 @@ def pick_adjective_declension(forms, gender, case, number):
     ]
     return pick_first(forms, keys, "")
 
-def pick_variant_form(b, lemma, tag):
+def pick_variant_form(b, lemma, tag, target_bin_id=None):
     """Pick a stable representative form for a specific BÍN variant tag."""
     cat = 'lo' if tag.startswith(('FSB-', 'FVB-', 'ESB-', 'EVB-')) else 'so'
     try:
         variants = b.lookup_variants(lemma, cat, tag)
     except Exception:
         return ""
+    if target_bin_id is not None:
+        variants = [v for v in variants if getattr(v, "bin_id", None) == target_bin_id]
     seen = set()
     forms = []
     for v in variants:
@@ -196,7 +198,7 @@ def pick_variant_form(b, lemma, tag):
                 return f
     return forms[0]
 
-def enrich_verb_forms_via_variants(b, lemma, forms):
+def enrich_verb_forms_via_variants(b, lemma, forms, target_bin_id=None):
     """Fill missing verb slots via lookup_variants so irregular strong verbs resolve correctly."""
     lemma_l = (lemma or "").strip().lower()
     needed_tags = [
@@ -221,7 +223,7 @@ def enrich_verb_forms_via_variants(b, lemma, forms):
     for tag in needed_tags:
         if forms.get(tag) and tag not in force_override_tags:
             continue
-        val = pick_variant_form(b, lemma, tag)
+        val = pick_variant_form(b, lemma, tag, target_bin_id=target_bin_id)
         if val:
             forms[tag] = val
     return forms
@@ -445,9 +447,47 @@ def parse_source_data(xml_path):
     print(f"✅ Successfully compiled {len(parsed_entries)} unique entries.")
     return parsed_entries
 
-def get_full_paradigm_via_blaster(b, headword, pos_cat):
+def score_bin_id_against_text(group_matches, text):
+    """Count how many of a bin_id group's inflected forms appear as whole words in text."""
+    words = set(re.findall(r"[a-zþðæöáéíóúýA-ZÞÐÆÖÁÉÍÓÚÝ]+", text.lower()))
+    forms = set((getattr(m, "bmynd", "") or "").lower() for m in group_matches)
+    forms.discard("")
+    return len(words & forms)
+
+
+def select_bin_id_for_verb_entry(b, lookup_hw, evidence_text):
+    """BÍN sometimes carries two distinct verbs under the same spelling (e.g. weak 'bera'
+    meaning to bare/expose vs. strong 'bera' meaning to carry), each with its own bin_id.
+    Without disambiguation, forms from both get blended into one (wrong) paradigm. Use the
+    entry's own example sentences — which contain real inflected forms in context — to pick
+    the matching bin_id. Returns None if there's only one bin_id, or no clear winner (in
+    which case callers fall back to the old blended behavior rather than guessing wrong)."""
+    if not evidence_text:
+        return None
+    try:
+        _, matches = b.lookup(lookup_hw)
+    except Exception:
+        return None
+    so_matches = [m for m in matches if getattr(m, "ord", "") == lookup_hw and getattr(m, "ofl", "") == "so"]
+    bin_ids = {getattr(m, "bin_id", None) for m in so_matches}
+    bin_ids.discard(None)
+    if len(bin_ids) <= 1:
+        return None
+
+    # Score against each bin_id's FULL paradigm (lookup() alone only returns forms whose
+    # surface string equals lookup_hw itself, e.g. just the infinitive — not "bar"/"beraði").
+    scored = sorted(
+        ((score_bin_id_against_text(b.lookup_id(bid), evidence_text), bid) for bid in bin_ids),
+        reverse=True,
+    )
+    if scored[0][0] > 0 and scored[0][0] > scored[1][0]:
+        return scored[0][1]
+    return None
+
+
+def get_full_paradigm_via_blaster(b, headword, pos_cat, target_bin_id=None):
     """
-    Pure String Stem Blaster Engine. immune to API attribute mismatches. Generates comprehensive 
+    Pure String Stem Blaster Engine. immune to API attribute mismatches. Generates comprehensive
     inflection patterns to gather all forms matching the headword lemma and part-of-speech tag.
     """
     candidates = set([headword, headword.lower()])
@@ -492,6 +532,9 @@ def get_full_paradigm_via_blaster(b, headword, pos_cat):
                     elif target_ofl == 'no' and m_ofl in ['kk', 'kvk', 'hk', 'no']: is_match = True
                     elif m_ofl == target_ofl: is_match = True
                     
+                    if target_bin_id is not None and getattr(m, "bin_id", None) != target_bin_id:
+                        continue
+
                     if m_ord == headword.lower() and is_match:
                         key = (getattr(m, "bmynd", ""), getattr(m, "beyging", getattr(m, "mark", "")).upper())
                         if key not in seen_keys:
@@ -532,16 +575,42 @@ def render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup
     return f"<div class='pronunciation-line'>{' · '.join(parts)}</div>"
 
 
+def render_synonyms(lookup_hw, synonyms_lookup):
+    """Always-visible Samheiti (synonyms) section, or "" if none are known."""
+    synonyms = synonyms_lookup.get(lookup_hw.strip().lower())
+    if not synonyms:
+        return ""
+    syn_html = ", ".join(html.escape(s) for s in synonyms)
+    content = f'<p style="margin:0; color:#444;">{syn_html}</p>'
+    return render_section("Samheiti", content, extra_style="margin-top:10px;")
+
+
+def render_section(title, content_html, extra_style=""):
+    """Always-visible section block. No <details>/<summary> — folds render clumsily
+    in Dictionary.app (learned from ancient-greek-mac), so paradigms/examples/idioms
+    are shown directly under a plain header bar instead of behind a toggle."""
+    style_attr = f" style='{extra_style}'" if extra_style else ""
+    return (
+        f"<div class='section-block'{style_attr}>"
+        f"<p class='section-label'>{html.escape(title)}</p>"
+        f"<div class='section-body'>{content_html}</div>"
+        f"</div>"
+    )
+
+
 def build_apple_dictionary_xml(entries, output_path):
     print("⚙️  Integrating BÍN morphology paradigms and generating Apple XML...")
     b = Bin()
 
     pron_lookup = load_pronunciation_lookup()
     hyph_lookup = load_hyphenation_lookup()
+    synonyms_lookup = load_synonyms_lookup()
     if pron_lookup:
         print(f"🔊 Loaded {len(pron_lookup)} pronunciation entries.")
     if hyph_lookup:
         print(f"🔤 Loaded {len(hyph_lookup)} hyphenation entries.")
+    if synonyms_lookup:
+        print(f"🔁 Loaded {len(synonyms_lookup)} synonym entries.")
 
     xml_out = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -557,9 +626,16 @@ def build_apple_dictionary_xml(entries, output_path):
         idioms = item["idioms"]
         
         lookup_hw = clean_headword_for_bin(raw_hw)
-        
+
+        # Disambiguate BÍN homographs (e.g. weak vs. strong "bera") using this entry's own
+        # examples/definitions, so its paradigm isn't blended with an unrelated same-spelling verb.
+        target_bin_id = None
+        if pos_cat == "so":
+            evidence_text = " ".join(defs + examples_list)
+            target_bin_id = select_bin_id_for_verb_entry(b, lookup_hw, evidence_text)
+
         # Load the complete core layout entries via our Blaster Engine
-        bin_matches = get_full_paradigm_via_blaster(b, lookup_hw, pos_cat)
+        bin_matches = get_full_paradigm_via_blaster(b, lookup_hw, pos_cat, target_bin_id=target_bin_id)
             
         seen_forms = set()
         forms = {}
@@ -590,7 +666,7 @@ def build_apple_dictionary_xml(entries, output_path):
                 forms[tag] = inflected_word
 
         if pos_cat == "so":
-            forms = enrich_verb_forms_via_variants(b, lookup_hw, forms)
+            forms = enrich_verb_forms_via_variants(b, lookup_hw, forms, target_bin_id=target_bin_id)
             if any(k.startswith("GM-") or k.startswith("MM-") for k in forms.keys()):
                 is_verb = True
         elif pos_cat == "lo":
@@ -707,8 +783,8 @@ def build_apple_dictionary_xml(entries, output_path):
                 verb_blocks.append(render_verb_table("Miðmynd", mm_nh, mm_p2, mm_p3, mm_p4, mm_vh_nt, mm_vh_þt, mm_is_weak, is_nuthaleg))
                 
             grid_content = "".join(verb_blocks)
-            paradigm_html = f'<details class="inflection-drawer" open="open"><summary>Beygingarlýsing (Kennimyndir)</summary><div class="inflection-container-verbs">{grid_content}</div></details>'
-            
+            paradigm_html = render_section("Beygingarlýsing (Kennimyndir)", f'<div class="inflection-container-verbs">{grid_content}</div>')
+
         # ==========================================
         # 2. NOUN TABLE LAYOUT (2-column singular/plural)
         # ==========================================
@@ -745,7 +821,7 @@ def build_apple_dictionary_xml(entries, output_path):
             verb_blocks.append('</div>')
             
             grid_content = "".join(verb_blocks)
-            paradigm_html = f'<details class="inflection-drawer" open="open"><summary>Beygingarlýsing</summary><div class="inflection-container-verbs">{grid_content}</div></details>'
+            paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container-verbs">{grid_content}</div>')
 
         # ==========================================
         # 3. ADJECTIVE TABLE LAYOUT (6 columns)
@@ -785,8 +861,8 @@ def build_apple_dictionary_xml(entries, output_path):
                 {adj_row('Ef.', 'EF')}
             </table>
             """
-            paradigm_html = f'<details class="inflection-drawer" open="open"><summary>Beygingarlýsing</summary><div class="inflection-container-verbs"><div class="voice-section"><h4>Lýsingarorðsbeyging</h4>{adjective_table}</div></div></details>'
-            
+            paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container-verbs"><div class="voice-section"><h4>Lýsingarorðsbeyging</h4>{adjective_table}</div></div>')
+
         elif seen_forms:
             inflection_boxes_html = []
             for tag, inflected_word in forms.items():
@@ -795,7 +871,7 @@ def build_apple_dictionary_xml(entries, output_path):
                 box_html = f'<div class="inflection-box"><span class="grammar-label">{html.escape(label_text)}</span><b>{html.escape(inflected_word)}</b></div>'
                 inflection_boxes_html.append(box_html)
             grid_content = "".join(inflection_boxes_html)
-            paradigm_html = f'<details class="inflection-drawer"><summary>Beygingarlýsing</summary><div class="inflection-container">{grid_content}</div></details>'
+            paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container">{grid_content}</div>')
             
         index_tags = "".join([f'<d:index d:value="{html.escape(f)}"/>' for f in seen_forms])
         if raw_hw not in seen_forms: index_tags += f'<d:index d:value="{html.escape(raw_hw)}"/>'
@@ -803,20 +879,14 @@ def build_apple_dictionary_xml(entries, output_path):
             
         def_list_html = "".join([f'<li style="margin-bottom:6px;">{html.escape(d)}</li>' for d in defs])
         
-        # Expandable drawer block layout for Notkunardæmi
+        # Always-visible section for Notkunardæmi (no fold — see render_section)
         examples_html = ""
         if examples_list:
             ex_items = "".join([f'<li style="margin-bottom:4px;">• {html.escape(ex)}</li>' for ex in examples_list])
-            examples_html = f"""
-            <details class="inflection-drawer" style="margin-top:10px;">
-                <summary>Notkunardæmi</summary>
-                <div class="inflection-container-verbs" style="padding: 10px 5px;">
-                    <ul style="list-style-type:none; padding-left:5px; color:#444; font-style:italic;">{ex_items}</ul>
-                </div>
-            </details>
-            """
-            
-        # Expandable drawer block layout for Orðasambönd
+            examples_content = f'<ul style="list-style-type:none; padding-left:5px; color:#444; font-style:italic;">{ex_items}</ul>'
+            examples_html = render_section("Notkunardæmi", examples_content, extra_style="margin-top:10px;")
+
+        # Always-visible section for Orðasambönd (no fold — see render_section)
         idiom_html = ""
         if idioms:
             idiom_list = "".join([
@@ -826,17 +896,12 @@ def build_apple_dictionary_xml(entries, output_path):
                 f'</li>'
                 for idm in idioms
             ])
-            idiom_html = f"""
-            <details class="inflection-drawer" style="margin-top:10px;">
-                <summary>Orðasambönd</summary>
-                <div class="inflection-container-verbs" style="padding: 10px 5px;">
-                    <ul style="list-style-type:square; padding-left:20px;">{idiom_list}</ul>
-                </div>
-            </details>
-            """
+            idiom_content = f'<ul style="list-style-type:square; padding-left:20px;">{idiom_list}</ul>'
+            idiom_html = render_section("Orðasambönd", idiom_content, extra_style="margin-top:10px;")
             
         gram_html = f" <span style='font-size: 16px; color: #555; font-weight: normal; font-style: italic;'>({html.escape(grammar_txt)})</span>" if grammar_txt else ""
         pronunciation_html = render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup)
+        synonyms_html = render_synonyms(lookup_hw, synonyms_lookup)
 
         entry_id = f"entry_{idx}"
         entry_xml = f"""
@@ -849,6 +914,7 @@ def build_apple_dictionary_xml(entries, output_path):
             </ol>
             {examples_html}
             {idiom_html}
+            {synonyms_html}
             {paradigm_html}
         </d:entry>
         """
