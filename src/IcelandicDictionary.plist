@@ -4,19 +4,19 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>Icelandic</string>
+	<key>CFBundleDisplayName</key>
+	<string>Íslenska</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.apple.dictionary.IcelandicDictionary</string>
 	<key>CFBundleName</key>
-	<string>Íslensk orðabók</string>
-	<key>CFBundleDisplayName</key>
-	<string>Íslensk orðabók</string>
+	<string>Íslenska</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>DCSDictionaryCopyright</key>
 	<string>Contains data from Stofnun Árna Magnússonar/CLARIN Iceland (CC BY-NC-ND 4.0); morphology via BÍN (Miðeind ehf. / islenska)</string>
-	<key>DCSDictionaryManufacturerName</key>
-	<string>Jónatan Sólon and contributors</string>
 	<key>DCSDictionaryFrontMatterWindowSize</key>
 	<string>0.5</string>
+	<key>DCSDictionaryManufacturerName</key>
+	<string>Jónatan Sólon and contributors</string>
 </dict>
 </plist>

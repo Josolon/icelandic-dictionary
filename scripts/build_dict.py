@@ -120,10 +120,10 @@ def noun_cell(indefinite, definite):
     base = (indefinite or "").strip()
     with_article = (definite or "").strip()
     if base and with_article and base != with_article:
-        return f"{html.escape(base)}<br/><span style='font-size:0.9em;color:#666;'>(gr.: {html.escape(with_article)})</span>"
+        return f"{html.escape(base, quote=False)}<br/><span style='font-size:0.9em;color:#666;'>(gr.: {html.escape(with_article, quote=False)})</span>"
     if with_article:
-        return html.escape(with_article)
-    return html.escape(base) if base else "-"
+        return html.escape(with_article, quote=False)
+    return html.escape(base, quote=False) if base else "-"
 
 def parse_noun_form_key(mark):
     """Normalize BÍN noun mark to our NF/ÞF/ÞGF/EF + ET/FT + GR key."""
@@ -309,12 +309,12 @@ def render_idiom_phrase(phrase):
     last = 0
     for match in re.finditer(r'<([^<>]+)>', text):
         if match.start() > last:
-            parts.append(html.escape(text[last:match.start()]))
-        parts.append(f"<span style='color:#777; font-style:italic;'>&lt;{html.escape(match.group(1).strip())}&gt;</span>")
+            parts.append(html.escape(text[last:match.start()], quote=False))
+        parts.append(f"<span style='color:#777; font-style:italic;'>&lt;{html.escape(match.group(1).strip(), quote=False)}&gt;</span>")
         last = match.end()
     if last < len(text):
-        parts.append(html.escape(text[last:]))
-    return "".join(parts) if parts else html.escape(text)
+        parts.append(html.escape(text[last:], quote=False))
+    return "".join(parts) if parts else html.escape(text, quote=False)
 
 def parse_source_data(xml_path):
     """
@@ -420,7 +420,7 @@ def parse_source_data(xml_path):
             elif tag_name in ['SemanticIdiomaticity', 'VerbPhrase', 'Phrase']:
                 phrase_str, def_str = extract_idiom_payload(child, headword)
                 if phrase_str and phrase_str != headword and def_str:
-                    idiom_line = f"<b>{html.escape(phrase_str)}</b>: <i>{html.escape(def_str)}</i>"
+                    idiom_line = f"<b>{html.escape(phrase_str, quote=False)}</b>: <i>{html.escape(def_str, quote=False)}</i>"
                     if idiom_line not in global_idioms:
                         global_idioms.append(idiom_line)
 
@@ -587,9 +587,9 @@ def render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup
 
     parts = []
     if ipa:
-        parts.append(f"<span class='ipa'>[{html.escape(ipa)}]</span>")
+        parts.append(f"<span class='ipa'>[{html.escape(ipa, quote=False)}]</span>")
     if hyphenated and hyphenated.replace("-", "") == key:
-        parts.append(f"<span class='hyphenation'>{html.escape(hyphenated)}</span>")
+        parts.append(f"<span class='hyphenation'>{html.escape(hyphenated, quote=False)}</span>")
 
     if not parts:
         return ""
@@ -601,7 +601,7 @@ def render_synonyms(lookup_hw, synonyms_lookup):
     synonyms = synonyms_lookup.get(lookup_hw.strip().lower())
     if not synonyms:
         return ""
-    syn_html = ", ".join(html.escape(s) for s in synonyms)
+    syn_html = ", ".join(html.escape(s, quote=False) for s in synonyms)
     content = f'<p style="margin:0; color:#444;">{syn_html}</p>'
     return render_section("Samheiti", content, extra_style="margin-top:10px;")
 
@@ -613,7 +613,7 @@ def render_section(title, content_html, extra_style=""):
     style_attr = f" style='{extra_style}'" if extra_style else ""
     return (
         f"<div class='section-block'{style_attr}>"
-        f"<p class='section-label'>{html.escape(title)}</p>"
+        f"<p class='section-label'>{html.escape(title, quote=False)}</p>"
         f"<div class='section-body'>{content_html}</div>"
         f"</div>"
     )
@@ -759,12 +759,12 @@ def build_apple_dictionary_xml(entries, output_path):
 
                 class_note_html = ""
                 if class_note:
-                    class_note_html = f"<div style='font-size:0.9em;color:#555;margin-bottom:4px;'><i>{html.escape(class_note)}</i></div>"
+                    class_note_html = f"<div style='font-size:0.9em;color:#555;margin-bottom:4px;'><i>{html.escape(class_note, quote=False)}</i></div>"
 
                 th_html = "".join([f"<th>{h}</th>" for h in principal_headers])
                 subj_th_html = "".join([f"<th>{h}</th>" for h in subj_headers])
-                principal_html = "".join([f"<td><b>{html.escape(v if v else '-')}</b></td>" for v in principal_values])
-                subj_html = "".join([f"<td><i>{html.escape(v if v else '-')}</i></td>" for v in subj_cells])
+                principal_html = "".join([f"<td><b>{html.escape(v if v else '-', quote=False)}</b></td>" for v in principal_values])
+                subj_html = "".join([f"<td><i>{html.escape(v if v else '-', quote=False)}</i></td>" for v in subj_cells])
 
                 return f"""
                 <div class=\"voice-section\"><h4>{voice_title}</h4>
@@ -868,9 +868,9 @@ def build_apple_dictionary_xml(entries, output_path):
                 hk_ft = pick_adjective_declension(forms, "HK", case_code, "FT", adjective_degree)
                 return (
                     f"<tr><td><i>{case_label}</i></td>"
-                    f"<td>{html.escape(kk_et) if kk_et else '-'}</td><td>{html.escape(kk_ft) if kk_ft else '-'}</td>"
-                    f"<td>{html.escape(kvk_et) if kvk_et else '-'}</td><td>{html.escape(kvk_ft) if kvk_ft else '-'}</td>"
-                    f"<td>{html.escape(hk_et) if hk_et else '-'}</td><td>{html.escape(hk_ft) if hk_ft else '-'}</td></tr>"
+                    f"<td>{html.escape(kk_et, quote=False) if kk_et else '-'}</td><td>{html.escape(kk_ft, quote=False) if kk_ft else '-'}</td>"
+                    f"<td>{html.escape(kvk_et, quote=False) if kvk_et else '-'}</td><td>{html.escape(kvk_ft, quote=False) if kvk_ft else '-'}</td>"
+                    f"<td>{html.escape(hk_et, quote=False) if hk_et else '-'}</td><td>{html.escape(hk_ft, quote=False) if hk_ft else '-'}</td></tr>"
                 )
 
             adjective_table = f"""
@@ -900,7 +900,7 @@ def build_apple_dictionary_xml(entries, output_path):
             for tag, inflected_word in forms.items():
                 display_tag, article_label = clean_grammar_tag(tag)
                 label_text = f"{display_tag}, {article_label}" if article_label else display_tag
-                box_html = f'<div class="inflection-box"><span class="grammar-label">{html.escape(label_text)}</span><b>{html.escape(inflected_word)}</b></div>'
+                box_html = f'<div class="inflection-box"><span class="grammar-label">{html.escape(label_text, quote=False)}</span><b>{html.escape(inflected_word, quote=False)}</b></div>'
                 inflection_boxes_html.append(box_html)
             grid_content = "".join(inflection_boxes_html)
             paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container">{grid_content}</div>')
@@ -909,12 +909,12 @@ def build_apple_dictionary_xml(entries, output_path):
         if raw_hw not in seen_forms: index_tags += f'<d:index d:value="{html.escape(raw_hw)}"/>'
         if lookup_hw not in seen_forms and lookup_hw != raw_hw: index_tags += f'<d:index d:value="{html.escape(lookup_hw)}"/>'
             
-        def_list_html = "".join([f'<li style="margin-bottom:6px;">{html.escape(d)}</li>' for d in defs])
+        def_list_html = "".join([f'<li style="margin-bottom:6px;">{html.escape(d, quote=False)}</li>' for d in defs])
         
         # Always-visible section for Notkunardæmi (no fold — see render_section)
         examples_html = ""
         if examples_list:
-            ex_items = "".join([f'<li style="margin-bottom:4px;">• {html.escape(ex)}</li>' for ex in examples_list])
+            ex_items = "".join([f'<li style="margin-bottom:4px;">• {html.escape(ex, quote=False)}</li>' for ex in examples_list])
             examples_content = f'<ul style="list-style-type:none; padding-left:5px; color:#444; font-style:italic;">{ex_items}</ul>'
             examples_html = render_section("Notkunardæmi", examples_content, extra_style="margin-top:10px;")
 
@@ -923,15 +923,15 @@ def build_apple_dictionary_xml(entries, output_path):
         if idioms:
             idiom_list = "".join([
                 f'<li style="margin-bottom:5px;">'
-                f'{render_idiom_phrase(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(1)) if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else html.escape(idm)}'
-                f'{" : <i>" + html.escape(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(2)) + "</i>" if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else ""}'
+                f'{render_idiom_phrase(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(1)) if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else html.escape(idm, quote=False)}'
+                f'{" : <i>" + html.escape(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(2), quote=False) + "</i>" if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else ""}'
                 f'</li>'
                 for idm in idioms
             ])
             idiom_content = f'<ul style="list-style-type:square; padding-left:20px;">{idiom_list}</ul>'
             idiom_html = render_section("Orðasambönd", idiom_content, extra_style="margin-top:10px;")
             
-        gram_html = f" <span style='font-size: 16px; color: #555; font-weight: normal; font-style: italic;'>({html.escape(grammar_txt)})</span>" if grammar_txt else ""
+        gram_html = f" <span style='font-size: 16px; color: #555; font-weight: normal; font-style: italic;'>({html.escape(grammar_txt, quote=False)})</span>" if grammar_txt else ""
         pronunciation_html = render_pronunciation_hyphenation(raw_hw, lookup_hw, pron_lookup, hyph_lookup)
         synonyms_html = render_synonyms(lookup_hw, synonyms_lookup)
 
@@ -939,7 +939,7 @@ def build_apple_dictionary_xml(entries, output_path):
         entry_xml = f"""
         <d:entry id="{entry_id}" d:title="{html.escape(raw_hw)}">
             {index_tags}
-            <h1>{html.escape(raw_hw)}{gram_html}</h1>
+            <h1>{html.escape(raw_hw, quote=False)}{gram_html}</h1>
             {pronunciation_html}
             <ol class="definition-list" style="padding-left:20px; line-height:1.5em; margin-bottom:12px;">
                 {def_list_html}
