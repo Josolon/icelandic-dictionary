@@ -404,7 +404,7 @@ def parse_source_data(xml_path):
                     if text_val and text_val not in core_definitions and text_val != headword:
                         core_definitions.append(text_val)
                         
-            elif tag_name in ['SenseExample', 'ContextualUsage', 'notkunardæmi'] or (tag_name == 'feat' and child.attrib.get('att', '').lower() in ['example', 'notkunardæmi']):
+            elif tag_name in ['SenseExample', 'notkunardæmi'] or (tag_name == 'feat' and child.attrib.get('att', '').lower() in ['example', 'notkunardæmi']):
                 if not is_inside_idiom(child):
                     ex_val = ""
                     text_nodes = collect_node_texts(child)
@@ -924,7 +924,7 @@ def build_apple_dictionary_xml(entries, output_path):
             idiom_list = "".join([
                 f'<li style="margin-bottom:5px;">'
                 f'{render_idiom_phrase(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(1)) if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else html.escape(idm, quote=False)}'
-                f'{" : <i>" + html.escape(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(2), quote=False) + "</i>" if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else ""}'
+                f'{": <i>" + html.escape(re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm).group(2), quote=False) + "</i>" if re.search(r"<b>(.*?)</b>: <i>(.*?)</i>", idm) else ""}'
                 f'</li>'
                 for idm in idioms
             ])
