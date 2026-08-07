@@ -175,7 +175,10 @@ make install
 ## Attribution
 
 - Lexical source data: Stofnun Árna Magnússonar í íslenskum fræðum via CLARIN Iceland (see source package metadata and terms).
-- Morphological lookup/enrichment runtime: BÍN access through the `islenska` package by Miðeind ehf.
+- Morphology (BÍN, CC BY-SA 4.0), accessed through the `islenska` package by Miðeind ehf. Required credit line:
+
+  *Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.*
+  *Höfundur og ritstjóri Kristín Bjarnadóttir.*
 - Dictionary build/integration tooling in this repository: Jónatan Sólon and contributors.
 
 See CREDITS.md for a consolidated attribution list and reference links.

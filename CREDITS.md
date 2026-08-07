@@ -35,8 +35,23 @@ redistribution of derived output is permitted with attribution.
 
 ## Morphology and Lookup Runtime
 
-- BÍN access via the `islenska` Python package
-- Package/provider: Miðeind ehf.
+Inflected-form lookup and paradigm tables are derived from BÍN
+(Beygingarlýsing íslensks nútímamáls / Database of Icelandic Morphology),
+https://bin.arnastofnun.is/. The copyright holder is Stofnun Árna
+Magnússonar í íslenskum fræðum (The Árni Magnússon Institute for Icelandic
+Studies), and the data are used under the terms of the
+[CC BY-SA 4.0 license](https://creativecommons.org/licenses/by-sa/4.0/legalcode)
+(terms: https://bin.arnastofnun.is/DMII/LTdata/conditions/).
+
+In accordance with the BÍN license terms, credit is hereby given as follows:
+
+*Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.*
+*Höfundur og ritstjóri Kristín Bjarnadóttir.*
+
+BÍN is accessed through the `islenska` (BinPackage) Python package,
+Copyright © Miðeind ehf., original author Vilhjálmur Þorsteinsson. Neither
+Miðeind ehf. nor this project claims any endorsement, sponsorship, or
+official status granted by the BÍN copyright holder.
 
 ## Tooling and Packaging
 
