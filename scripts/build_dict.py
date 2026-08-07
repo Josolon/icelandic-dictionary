@@ -608,7 +608,7 @@ def render_synonyms(lookup_hw, synonyms_lookup):
 
 def render_section(title, content_html, extra_style=""):
     """Always-visible section block. No <details>/<summary> — folds render clumsily
-    in Dictionary.app (learned from ancient-greek-mac), so paradigms/examples/idioms
+    in Dictionary.app (learned from ancient-greek-dictionary), so paradigms/examples/idioms
     are shown directly under a plain header bar instead of behind a toggle."""
     style_attr = f" style='{extra_style}'" if extra_style else ""
     return (
