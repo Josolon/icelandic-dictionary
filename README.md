@@ -1,11 +1,16 @@
-# macOS Icelandic Dictionary Builder
+# Icelandic Dictionary Builder
 
 ![Íslensk orðabók working preview](assets/preview.png)
 ![Íslensk orðabók working preview](assets/preview2.png)
 
-Bring seamless, system-wide Icelandic definitions to your Mac! 
+Bring seamless, system-wide Icelandic definitions to your desktop.
 
-This project compiles source lexical data (INO) and morphology (BÍN) into a local Apple Dictionary bundle so lookup works with inflected forms.
+This project compiles source lexical data (INO) and morphology (BÍN) into a local dictionary bundle so lookup works with inflected forms. It builds two forms from the same generated XML:
+
+* **macOS** — a `.dictionary` plugin for the native Dictionary app and the system-wide "Look Up" feature.
+* **Linux & Windows** — a StarDict build for [GoldenDict-ng](https://xiaoyifang.github.io/goldendict-ng/), whose **Scan Popup** gives the same select-a-word-and-look-it-up workflow. See [docs/GOLDENDICT.md](docs/GOLDENDICT.md).
+
+**v1.3.0** — Linux and Windows support via StarDict/GoldenDict-ng, from the same XML as the macOS bundle: all 56,382 entries and all 529,456 BÍN-indexed inflected forms, so `öbbuðumst` resolves to `abbast` exactly as it does on macOS. That path needs nothing but Python 3 — no Dictionary Development Kit and no macOS — so you can build it directly on a Linux box that has the source data. The ND restriction is unchanged and applies equally: build it for yourself, do not publish the output. The project also dropped its `-mac` suffix, which stopped being accurate with this release; GitHub redirects the old URLs.
 
 ## Important License Context
 
