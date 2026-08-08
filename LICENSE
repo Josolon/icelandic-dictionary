@@ -25,19 +25,57 @@ Practical compliance guidance:
 You are responsible for verifying current terms at the original data source.
 If source licensing changes, update this notice and your distribution behavior.
 
+Morphology Data License (BÍN) — Required Verbatim Credit
+--------------------------------------------------------
+Inflected-form lookup and paradigm tables in this project are derived from
+BÍN (Beygingarlýsing íslensks nútímamáls / Database of Icelandic
+Morphology), https://bin.arnastofnun.is/. This is a separate dataset from
+the CLARIN Iceland lexical sources above, with its own license: the
+copyright holder is Stofnun Árna Magnússonar í íslenskum fræðum, and the
+data are used under CC BY-SA 4.0 — NOT under the `islenska` package's MIT
+terms, and not under the CC BY-NC-ND terms covering the ÍNO data.
+(BÍN terms: https://bin.arnastofnun.is/DMII/LTdata/conditions/)
+
+In accordance with the BÍN license terms, credit is hereby given as follows.
+DO NOT EDIT, PARAPHRASE, TRANSLATE, ABBREVIATE, OR REFLOW the indented line
+below — BÍN's terms require this exact wording:
+
+    Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.
+    Höfundur og ritstjóri Kristín Bjarnadóttir.
+
+This credit line must be reproduced verbatim by anyone redistributing
+anything built from BÍN data.
+
+BÍN is accessed through the `islenska` (BinPackage) Python package,
+Copyright © Miðeind ehf., original author Vilhjálmur Þorsteinsson. The
+package code is MIT; the BÍN data it carries is not, and remains
+CC BY-SA 4.0. Neither Miðeind ehf. nor this project claims any endorsement,
+sponsorship, or official status granted by the BÍN copyright holder.
+
+Note that BÍN's ShareAlike condition and ÍNO's NoDerivatives condition
+cannot both be satisfied by a single redistributed artifact — which is one
+more reason the compiled bundles from this project must stay local.
+
 Upstream License Links
 ----------------------
 - CC BY-NC-ND 4.0 legal code:
   https://creativecommons.org/licenses/by-nc-nd/4.0/
+- CC BY-SA 4.0 legal code (BÍN):
+  https://creativecommons.org/licenses/by-sa/4.0/
 - CLARIN Iceland repository home:
   https://repository.clarin.is/
+- BÍN terms:
+  https://bin.arnastofnun.is/DMII/LTdata/conditions/
 
 Attribution Notes
 -----------------
 - Lexical source material is attributed to Stofnun Árna Magnússonar í íslenskum fræðum
   and/or the relevant CLARIN Iceland source records.
-- Morphological enrichment is performed through BÍN access provided by the `islenska`
-  package maintained by Miðeind ehf.
+- Morphological enrichment is derived from BÍN, authored and edited by
+  Kristín Bjarnadóttir, published by Stofnun Árna Magnússonar í íslenskum
+  fræðum, licensed CC BY-SA 4.0 — see the required verbatim credit line
+  above. Access is via the `islenska` package maintained by Miðeind ehf.,
+  which is a delivery mechanism, not the source of the data or its license.
 - Build orchestration, conversion, and packaging scripts in this repository are authored
   by repository contributors.
 

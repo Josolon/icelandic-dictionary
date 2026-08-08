@@ -28,10 +28,16 @@ Read LICENSE in this repository for a project-specific summary and links.
 - scripts/enrichment_data.py: Loaders for the staged pronunciation/hyphenation/synonym data.
 - scripts/convert_pronunciation_xls.py: One-time .xls -> .tsv conversion used by the fetch script.
 - scripts/install_dictionary.sh: One-command installer for new users.
+- scripts/build_stardict.py: Apple XML -> StarDict, for GoldenDict on Linux/Windows.
+- scripts/verify_stardict.py: Independent reader that checks a built StarDict set.
+- scripts/dictzip.py: Random-access gzip for the StarDict body.
+- scripts/package_goldendict.sh: One-command GoldenDict folder build.
 - data/ino_data.xml: Local lexical source data input.
 - data/pronunciation/, data/hyphenation/, data/synonyms/: Staged optional enrichment data (gitignored).
 - src/IcelandicDictionary.xml: Generated dictionary source XML (build output).
 - src/IcelandicDictionary.css: Dictionary style sheet used by build_dict.sh.
+- src/GoldenDictArticle.css: Style sheet for the GoldenDict (Linux/Windows) build.
+- docs/GOLDENDICT.md: Linux/Windows build and setup guide.
 - src/IcelandicDictionary.plist: Bundle metadata (includes display name: "Íslensk orðabók").
 - src/Makefile: Primary build/install targets for DictionaryDevelopmentKit.
 - src/objects/: Intermediate and final .dictionary build artifacts.
@@ -135,6 +141,30 @@ Then:
 3. Enable the installed Icelandic dictionary.
 4. Restart Dictionary.app if it was already open.
 
+## Linux and Windows (GoldenDict-ng)
+
+The same generated XML also builds as **StarDict**, which
+[GoldenDict-ng](https://xiaoyifang.github.io/goldendict-ng/) reads on Linux,
+Windows and macOS — all 56,382 entries and all 529,456 indexed inflected forms.
+GoldenDict's **Scan Popup** is the direct analogue of macOS Look Up: select a
+word anywhere on screen and get the entry.
+
+```bash
+./scripts/package_goldendict.sh
+```
+
+That writes `dist/goldendict/`, which needs nothing but Python 3 — no Dictionary
+Development Kit and no macOS, so it also builds directly on a Linux box that has
+the source data.
+
+The same ND restriction applies as to the `.dictionary` bundle: build it for
+yourself, do not publish the output. That is why the script produces a folder
+rather than a release zip.
+
+See **[docs/GOLDENDICT.md](docs/GOLDENDICT.md)** for the full setup — adding the
+folder, installing the stylesheet (StarDict has no stylesheet slot, so it ships
+separately), enabling Scan Popup, and the Wayland caveat.
+
 ## Update Workflow
 
 When source data or morphology logic changes:
@@ -175,10 +205,15 @@ make install
 ## Attribution
 
 - Lexical source data: Stofnun Árna Magnússonar í íslenskum fræðum via CLARIN Iceland (see source package metadata and terms).
-- Morphology (BÍN, CC BY-SA 4.0), accessed through the `islenska` package by Miðeind ehf. Required credit line:
+- Morphology (BÍN, CC BY-SA 4.0), accessed through the `islenska` package by
+  Miðeind ehf. BÍN's terms require the following credit line verbatim —
+  **do not edit, paraphrase, translate, or reflow it:**
 
-  *Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.*
-  *Höfundur og ritstjóri Kristín Bjarnadóttir.*
+      Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.
+      Höfundur og ritstjóri Kristín Bjarnadóttir.
+
+  Neither Miðeind ehf. nor this project claims any endorsement, sponsorship,
+  or official status granted by the BÍN copyright holder.
 - Dictionary build/integration tooling in this repository: Jónatan Sólon and contributors.
 
 See CREDITS.md for a consolidated attribution list and reference links.

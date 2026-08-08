@@ -43,10 +43,13 @@ Studies), and the data are used under the terms of the
 [CC BY-SA 4.0 license](https://creativecommons.org/licenses/by-sa/4.0/legalcode)
 (terms: https://bin.arnastofnun.is/DMII/LTdata/conditions/).
 
-In accordance with the BÍN license terms, credit is hereby given as follows:
+In accordance with the BÍN license terms, credit is hereby given as follows.
+**DO NOT EDIT, PARAPHRASE, TRANSLATE, ABBREVIATE, OR REFLOW the indented
+line below** — BÍN's terms require this exact wording, and it is reproduced
+verbatim from the citation form the copyright holder prescribes:
 
-*Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.*
-*Höfundur og ritstjóri Kristín Bjarnadóttir.*
+    Beygingarlýsing íslensks nútímamáls. Stofnun Árna Magnússonar í íslenskum fræðum.
+    Höfundur og ritstjóri Kristín Bjarnadóttir.
 
 BÍN is accessed through the `islenska` (BinPackage) Python package,
 Copyright © Miðeind ehf., original author Vilhjálmur Þorsteinsson. Neither

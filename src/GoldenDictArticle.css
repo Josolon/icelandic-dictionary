@@ -1,0 +1,226 @@
+/* GoldenDictArticle.css - shipped to users as article-style.css
+ *
+ * StarDict has no stylesheet slot, so GoldenDict takes article styling from a
+ * file in its own config directory. This is IcelandicDictionary.css adapted for
+ * the ways GoldenDict differs from Dictionary.app:
+ *
+ *   1. A base font and size. Dictionary.app supplies its own; GoldenDict does
+ *      not, and the CSS never set one. DejaVu Sans (Linux) and Segoe UI
+ *      (Windows) both cover the Icelandic letters and the IPA in the
+ *      pronunciation line.
+ *   2. Dark mode. GoldenDict-ng has a dark theme; this CSS assumes a white
+ *      background throughout and goes unreadable under it.
+ *   3. Popup width. Scan Popup is narrow, so paradigm tables shrink below 520px
+ *      rather than forcing sideways scrolling.
+ *
+ * The generated XML also carries hardcoded inline greys (#444/#555/#666/#777)
+ * on part-of-speech labels and idiom parentheticals. Inline styles beat the
+ * stylesheet, so the dark block overrides them with !important - the one place
+ * this file has to shout. Fixing it properly means changing build_dict.py's
+ * emitted markup, which would churn the macOS build for no macOS benefit.
+ *
+ * Everything is scoped to .isl-article - the wrapper build_stardict.py puts
+ * around each entry - so other dictionaries in the same GoldenDict install are
+ * left alone. That scoping matters more here than elsewhere: .section-block,
+ * .section-label and .section-body are generic enough to collide.
+ */
+
+.isl-article {
+    --isl-text: #1a1a1a;
+    --isl-muted: #444;
+    --isl-faint: #666;
+    --isl-accent: #2a4a9a;
+    --isl-border: #c8d4ee;
+    --isl-panel: #f7f9ff;
+    --isl-chip: #edf1fb;
+    --isl-box: rgba(0, 0, 0, 0.04);
+
+    --isl-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+              "DejaVu Sans", Arial, sans-serif;
+    --isl-ipa: "Doulos SIL", "Charis SIL", "Gentium Plus", "DejaVu Serif",
+               "Noto Serif", Georgia, serif;
+
+    font-family: var(--isl-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--isl-text);
+}
+
+@media (prefers-color-scheme: dark) {
+    .isl-article {
+        --isl-text: #e6e6ea;
+        --isl-muted: #c2c2cc;
+        --isl-faint: #9d9daa;
+        --isl-accent: #8fa8e8;
+        --isl-border: #3a4260;
+        --isl-panel: #1c2030;
+        --isl-chip: #232840;
+        --isl-box: rgba(255, 255, 255, 0.06);
+    }
+
+    /* The XML bakes these greys in inline, so nothing short of !important
+       reaches them. Each maps to the variable that replaced it above. */
+    .isl-article [style*="#666"] { color: var(--isl-faint) !important; }
+    .isl-article [style*="#777"] { color: var(--isl-faint) !important; }
+    .isl-article [style*="#555"] { color: var(--isl-muted) !important; }
+    .isl-article [style*="#444"] { color: var(--isl-muted) !important; }
+}
+
+.isl-article h1 {
+    font-size: 1.6em;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--isl-border);
+    color: var(--isl-text);
+}
+
+.isl-article h4 {
+    margin: 0 0 4px 0;
+    font-size: 0.92em;
+    font-weight: 600;
+    color: var(--isl-accent);
+}
+
+/* ===================== Section blocks ===================== */
+
+/* Always-visible section block (paradigms, examples, idioms). No <details>/
+   <summary> - folds render clumsily in Dictionary.app and no better here. */
+.isl-article .section-block {
+    margin-top: 12px;
+    background-color: var(--isl-panel);
+    border: 1px solid var(--isl-border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.isl-article .section-label {
+    margin: 0;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--isl-accent);
+    background-color: var(--isl-chip);
+    border-bottom: 1px solid var(--isl-border);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.isl-article .section-body { padding: 8px 10px; }
+
+/* ===================== Inflection ===================== */
+
+/* Container for the inflection grid/table inside a section block */
+.isl-article .inflection-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px;
+    overflow: visible;
+}
+
+.isl-article .inflection-container-verbs {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.isl-article .voice-section { margin-bottom: 10px; }
+
+.isl-article .verb-paradigm-table {
+    width: auto;
+    max-width: 100%;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+.isl-article .verb-paradigm-table th,
+.isl-article .verb-paradigm-table td {
+    padding: 4px 18px 4px 4px;
+    text-align: center;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.isl-article .verb-paradigm-table th:last-child,
+.isl-article .verb-paradigm-table td:last-child { padding-right: 4px; }
+
+.isl-article .verb-paradigm-table th {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--isl-accent);
+}
+
+/* Individual form boxes */
+.isl-article .inflection-box {
+    background: var(--isl-box);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+/* Grammar label (e.g. NFET, gr.) */
+.isl-article .grammar-label {
+    font-size: 9px;
+    color: var(--isl-faint);
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* ===================== Pronunciation ===================== */
+
+/* Optional pronunciation/hyphenation line under the headword */
+.isl-article .pronunciation-line {
+    font-size: 13px;
+    color: var(--isl-faint);
+    margin-bottom: 8px;
+}
+
+.isl-article .pronunciation-line .ipa {
+    font-family: var(--isl-ipa);
+    font-style: italic;
+}
+
+.isl-article .pronunciation-line .hyphenation { letter-spacing: 0.02em; }
+
+/* ===================== Definitions ===================== */
+
+.isl-article ol.definition-list { margin: 0 0 12px 0; }
+.isl-article ol.definition-list li { color: var(--isl-text); }
+
+/* ===================== Cross-dictionary links ===================== */
+
+.isl-article a[href^="bword:"] {
+    color: var(--isl-accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--isl-accent);
+}
+
+.isl-article a[href^="bword:"]:hover { border-bottom-style: solid; }
+
+/* ===================== Scan Popup / narrow windows ===================== */
+
+/* The popup is typically 400-500px. A four-column verb paradigm at full
+   padding forces sideways scrolling, so it is reined in here rather than in
+   the entry markup. */
+@media (max-width: 520px) {
+    .isl-article h1 { font-size: 1.35em; }
+
+    .isl-article .verb-paradigm-table { font-size: 0.85em; }
+
+    .isl-article .verb-paradigm-table th,
+    .isl-article .verb-paradigm-table td { padding: 3px 6px 3px 3px; }
+
+    .isl-article .section-body { padding: 6px 7px; }
+
+    .isl-article .inflection-container {
+        grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+    }
+}
