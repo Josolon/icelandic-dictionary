@@ -13,6 +13,9 @@ NUTHALEGAR_VERBS = {
 
 RI_VERBS_THREE_PARTS = {"gróa", "róa", "snúa", "núa"}
 
+# ÍNO's grammaticalGender codes -> BÍN word-category codes.
+INO_GENDER_MAP = {"f": "kvk", "m": "kk", "n": "hk"}
+
 def clean_grammar_tag(bin_tag):
     """Fallback tag cleaner for adjectives."""
     tag_map = {
@@ -339,6 +342,7 @@ def parse_source_data(xml_path):
         core_definitions = []
         notkunardaemi = []
         global_idioms = []
+        genders = []
         
         # --- 1. Extract Headword ---
         for sub in entry.iter():
@@ -386,6 +390,21 @@ def parse_source_data(xml_path):
                             elif val_clean in ['kk', 'kvk', 'hk', 'no', 'nafnorð', 'noun']: pos_category = 'no'
                             elif val_clean in ['lo', 'lýsingarorð', 'adjective']: pos_category = 'lo'
                             if val.strip() not in grammar_labels: grammar_labels.append(val.strip())
+
+        # --- 2b. Extract grammatical gender ---
+        # ÍNO records gender for every noun entry ("f"/"m"/"n", or "f/m" etc. for
+        # dual-gender words). BÍN carries same-spelling nouns of different genders
+        # as separate lemmas, so without this the paradigm gets blended across them
+        # (e.g. "vættur" showed feminine forms with the masculine "vættarins").
+        for sub in entry.iter():
+            if sub.tag.split('}')[-1] == 'feat' and sub.attrib.get('att') == 'grammaticalGender':
+                val = (sub.attrib.get('val') or "").strip().lower()
+                for token in val.split('/'):
+                    mapped = INO_GENDER_MAP.get(token.strip())
+                    if mapped and mapped not in genders:
+                        genders.append(mapped)
+                if genders:
+                    break
 
         # --- 3. Greedy Recursive Extraction ---
         for child in entry.iter():
@@ -462,7 +481,8 @@ def parse_source_data(xml_path):
             "grammar": ", ".join(localized_labels),
             "definitions": core_definitions,
             "examples": notkunardaemi,
-            "idioms": global_idioms
+            "idioms": global_idioms,
+            "genders": genders
         })
             
     print(f"✅ Successfully compiled {len(parsed_entries)} unique entries.")
@@ -506,7 +526,92 @@ def select_bin_id_for_verb_entry(b, lookup_hw, evidence_text):
     return None
 
 
-def get_full_paradigm_via_blaster(b, headword, pos_cat, target_bin_id=None):
+_INO_REJECTED_RE = re.compile(
+    r"\b(röng|rangt|ranglega|óviðurkennd)\b.*\b(mynd|ritháttur)\b|ekki viðurkennd|ekki viðurkennt",
+    re.IGNORECASE,
+)
+
+
+def ino_marks_as_rejected(definitions):
+    """True when ÍNO's own definition says the headword is a wrong, unaccepted form
+    (e.g. "talva" — "röng nefnifallsmynd af tölva (ekki viðurkennd)")."""
+    return any(_INO_REJECTED_RE.search(d or "") for d in definitions or [])
+
+
+def bin_grade_rank(grade):
+    """Order BÍN correctness grades best-first. 1 is the standard grade and
+    higher numbers mark progressively less accepted forms (rejected forms such
+    as "talva" sit at 4). 0 means ungraded, not bad, so it ties with 1."""
+    try:
+        grade = int(grade)
+    except (TypeError, ValueError):
+        return 1
+    return 1 if grade == 0 else grade
+
+
+def noun_form_rank(match):
+    """Sort key choosing between BÍN forms competing for one paradigm slot.
+
+    BÍN's dominance marking decides — RIK (ríkjandi/dominant) over JAFN (equal)
+    over VIK (víkjandi/receding) — unless BÍN grades the form as less accepted,
+    which takes precedence. Numbered variants ("EFET2") lose to the primary form
+    as a final tie-break. Without this the slot was filled by whichever form BÍN
+    happened to return last.
+    """
+    grade = bin_grade_rank(getattr(match, "beinkunn", 1))
+    bgildi = (getattr(match, "bgildi", "") or "").upper()
+    dominance = {"RIK": 0, "JAFN": 1, "": 1}.get(bgildi, 2)
+    mark = (getattr(match, "mark", "") or "")
+    is_variant = 1 if mark and mark[-1].isdigit() else 0
+    return (grade, dominance, is_variant)
+
+
+def select_bin_id_for_noun_entry(b, lookup_hw, genders):
+    """Pick the single BÍN lemma a noun entry's paradigm should be drawn from.
+
+    BÍN files same-spelling nouns as separate lemmas, frequently of different
+    genders ("vættur" exists as both kvk and kk). Merging them yields an
+    incoherent table — feminine forms sitting next to the masculine genitive
+    "vættarins" instead of "vættarinnar". ÍNO records a gender for every noun
+    entry, so prefer the lemma(s) matching it; where that still leaves several
+    (same-gender homographs such as "ás" the beam vs. "ás" the god) pick the
+    lowest bin_id so at least one internally consistent paradigm is shown.
+    Returns (bin_id, ofl) or (None, None) when the word isn't a noun in BÍN.
+    """
+    try:
+        _, lemmas = b.lookup_lemmas(lookup_hw)
+    except Exception:
+        return None, None
+
+    nouns = [l for l in lemmas if getattr(l, "ofl", "") in ("kk", "kvk", "hk")]
+    if not nouns:
+        return None, None
+
+    # Gender order matters: ÍNO lists the dominant gender first for dual-gender
+    # words ("vættur" is "f/m", i.e. primarily feminine), so take the first of
+    # its genders that BÍN actually has rather than merging or guessing.
+    preferred = []
+    for gender in genders or []:
+        preferred = [l for l in nouns if getattr(l, "ofl", "") == gender]
+        if preferred:
+            break
+    if not preferred:
+        preferred = nouns
+
+    def lemma_rank(lemma):
+        # Prefer the lemma BÍN grades as most accepted; bin_id only breaks ties.
+        bin_id = getattr(lemma, "bin_id", 0)
+        try:
+            grade = bin_grade_rank(b.lookup_id(bin_id)[0].einkunn)
+        except Exception:
+            grade = 1
+        return (grade, bin_id)
+
+    chosen = min(preferred, key=lemma_rank)
+    return getattr(chosen, "bin_id", None), getattr(chosen, "ofl", None)
+
+
+def get_full_paradigm_via_blaster(b, headword, pos_cat, target_bin_id=None, noun_cat=None):
     """
     Pure String Stem Blaster Engine. immune to API attribute mismatches. Generates comprehensive
     inflection patterns to gather all forms matching the headword lemma and part-of-speech tag.
@@ -564,17 +669,30 @@ def get_full_paradigm_via_blaster(b, headword, pos_cat, target_bin_id=None):
         except Exception: pass
 
     # Nouns: ask BÍN directly for full case paradigms (ET/FT, with/without article).
+    # Restricted to this entry's own gender/lemma when known — see
+    # select_bin_id_for_noun_entry — otherwise paradigms of same-spelling nouns
+    # get merged into one table.
     if pos_cat == 'no':
         try:
             _, lemmas = b.lookup_lemmas(headword)
             noun_cats = [x.ofl for x in lemmas if getattr(x, 'ofl', '') in ['kk', 'kvk', 'hk', 'no']]
-            for noun_cat in set(noun_cats):
-                for case in ['NF', 'ÞF', 'ÞGF', 'EF']:
-                    for m in b.lookup_forms(headword, noun_cat, case):
-                        key = (getattr(m, 'bmynd', ''), getattr(m, 'mark', getattr(m, 'beyging', '')).upper())
-                        if key not in seen_keys:
-                            seen_keys.add(key)
-                            final_matches.append(m)
+            if noun_cat:
+                noun_cats = [c for c in noun_cats if c == noun_cat] or noun_cats
+            # lookup_id returns the augmented (Kristínarsnið) paradigm, which carries the
+            # per-form grade/dominance fields noun_form_rank needs to choose between
+            # competing forms; lookup_forms only exposes the bare form.
+            if target_bin_id is not None:
+                paradigm = b.lookup_id(target_bin_id)
+            else:
+                paradigm = []
+                for cat in set(noun_cats):
+                    for case in ['NF', 'ÞF', 'ÞGF', 'EF']:
+                        paradigm.extend(b.lookup_forms(headword, cat, case))
+            for m in paradigm:
+                key = (getattr(m, 'bmynd', ''), getattr(m, 'mark', getattr(m, 'beyging', '')).upper())
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    final_matches.append(m)
         except Exception:
             pass
     return final_matches
@@ -651,15 +769,33 @@ def build_apple_dictionary_xml(entries, output_path):
         # Disambiguate BÍN homographs (e.g. weak vs. strong "bera") using this entry's own
         # examples/definitions, so its paradigm isn't blended with an unrelated same-spelling verb.
         target_bin_id = None
+        noun_cat = None
+        suppress_paradigm = False
         if pos_cat == "so":
             evidence_text = " ".join(defs + examples_list)
             target_bin_id = select_bin_id_for_verb_entry(b, lookup_hw, evidence_text)
+        elif pos_cat == "no":
+            target_bin_id, noun_cat = select_bin_id_for_noun_entry(b, lookup_hw, item.get("genders", []))
+            # "talva" is a non-word nominative of "tölva": BÍN grades it 4 (rejected) and
+            # ÍNO defines it as an unaccepted form. Such an entry keeps its definition —
+            # which tells the reader it is wrong — but must not be dressed up with a full
+            # declension table as if it were valid. Both signals are required: BÍN also
+            # grades 4 many perfectly real words whose spelling it merely disprefers
+            # ("líter", "meter", "forusta", "brokkolí"), which must keep their paradigms.
+            if target_bin_id is not None and ino_marks_as_rejected(defs):
+                try:
+                    suppress_paradigm = bin_grade_rank(b.lookup_id(target_bin_id)[0].einkunn) >= 4
+                except Exception:
+                    suppress_paradigm = False
 
         # Load the complete core layout entries via our Blaster Engine
-        bin_matches = get_full_paradigm_via_blaster(b, lookup_hw, pos_cat, target_bin_id=target_bin_id)
+        bin_matches = get_full_paradigm_via_blaster(
+            b, lookup_hw, pos_cat, target_bin_id=target_bin_id, noun_cat=noun_cat
+        )
             
         seen_forms = set()
         forms = {}
+        noun_form_ranks = {}
         is_verb = False
         is_noun = False
         is_adjective = False
@@ -682,7 +818,12 @@ def build_apple_dictionary_xml(entries, output_path):
                 is_noun = True
                 noun_key = parse_noun_form_key(tag)
                 if noun_key:
-                    forms[noun_key] = inflected_word
+                    # Several BÍN forms can map to one display slot ("EFET"/"EFET2");
+                    # keep the one BÍN ranks highest instead of the last one seen.
+                    rank = noun_form_rank(match)
+                    if noun_key not in noun_form_ranks or rank < noun_form_ranks[noun_key]:
+                        noun_form_ranks[noun_key] = rank
+                        forms[noun_key] = inflected_word
             elif ordfl == "lo":
                 is_adjective = True
                 forms[tag] = inflected_word
@@ -811,7 +952,7 @@ def build_apple_dictionary_xml(entries, output_path):
         # ==========================================
         # 2. NOUN TABLE LAYOUT (2-column singular/plural)
         # ==========================================
-        elif is_noun and forms:
+        elif is_noun and forms and not suppress_paradigm:
             nf_et = forms.get("NFET", "")
             þf_et = forms.get("ÞFET", "")
             gf_et = forms.get("ÞGFET", "")
@@ -895,7 +1036,7 @@ def build_apple_dictionary_xml(entries, output_path):
             """
             paradigm_html = render_section("Beygingarlýsing", f'<div class="inflection-container-verbs"><div class="voice-section"><h4>{degree_title}</h4>{adjective_table}</div></div>')
 
-        elif seen_forms:
+        elif seen_forms and not suppress_paradigm:
             inflection_boxes_html = []
             for tag, inflected_word in forms.items():
                 display_tag, article_label = clean_grammar_tag(tag)
