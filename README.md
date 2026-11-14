@@ -10,6 +10,8 @@ This project compiles source lexical data (INO) and morphology (BÍN) into a loc
 * **macOS** — a `.dictionary` plugin for the native Dictionary app and the system-wide "Look Up" feature.
 * **Linux & Windows** — a StarDict build for [GoldenDict-ng](https://xiaoyifang.github.io/goldendict-ng/), whose **Scan Popup** gives the same select-a-word-and-look-it-up workflow. See [docs/GOLDENDICT.md](docs/GOLDENDICT.md).
 
+**v1.3.2** — Dark mode for the macOS `.dictionary`. The stylesheet had no dark-mode rules, so the section panels kept their light backgrounds while the text turned light with the system: pale text on near-white. Panels, labels and the greys the generator emits inline are now themed (the GoldenDict build already was). The dictionary data is unchanged.
+
 **v1.3.0** — Linux and Windows support via StarDict/GoldenDict-ng, from the same XML as the macOS bundle: all 56,382 entries and all 529,456 BÍN-indexed inflected forms, so `öbbuðumst` resolves to `abbast` exactly as it does on macOS. That path needs nothing but Python 3 — no Dictionary Development Kit and no macOS — so you can build it directly on a Linux box that has the source data. The ND restriction is unchanged and applies equally: build it for yourself, do not publish the output. The project also dropped its `-mac` suffix, which stopped being accurate with this release; GitHub redirects the old URLs.
 
 ## Important License Context

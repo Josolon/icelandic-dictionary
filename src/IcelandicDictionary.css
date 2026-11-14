@@ -105,3 +105,43 @@
 .pronunciation-line .hyphenation {
     letter-spacing: 0.02em;
 }
+
+/* ---- Dark mode ----------------------------------------------------------
+   The panels above hard-code light backgrounds (#f7f9ff / #edf1fb) while text
+   inherits the system colour, which turns light in dark mode — pale text on
+   near-white. Dictionary.app supplies its own page background, so only the
+   panels, labels and greys are overridden here.
+
+   build_dict.py also emits some greys inline (style="color:#666" etc.), and
+   inline styles outrank stylesheet rules, so those need !important. They are
+   matched by the exact values the generator emits and set colour only. */
+:root {
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    .section-block {
+        background-color: #232538;
+        border-color: #3a3d55;
+    }
+    .section-label {
+        color: #b9c6ff;
+        background-color: #2a2c42;
+        border-bottom-color: #3a3d55;
+    }
+    .inflection-box {
+        background: rgba(255, 255, 255, 0.08);
+    }
+    .grammar-label,
+    .pronunciation-line {
+        color: #9aa0b4;
+    }
+    [style*="#444"],
+    [style*="#555"] {
+        color: #d2d5e0 !important;
+    }
+    [style*="#666"],
+    [style*="#777"] {
+        color: #9aa0b4 !important;
+    }
+}
